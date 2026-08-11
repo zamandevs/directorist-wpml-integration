@@ -7,6 +7,8 @@ final class Directorist_WPML_Integration {
 
     private static $instance;
 
+    private $booted = false;
+
     /**
 	 * Constuctor
 	 * 
@@ -20,13 +22,42 @@ final class Directorist_WPML_Integration {
             return;
         }
 
-        // Load Textdomain
-        add_action('plugins_loaded', [ $this, 'load_textdomain' ] );
+        if ( did_action( 'plugins_loaded' ) ) {
+            $this->boot();
+        } else {
+            add_action( 'plugins_loaded', [ $this, 'boot' ], 20 );
+        }
 
-        // Register Controllers
-        $controllers = $this->get_controllers();
-        Helper\Serve::register_services( $controllers );
+    }
 
+    /**
+	 * Register integration services after every active plugin is loaded.
+	 *
+	 * @return void
+	 */
+    public function boot() {
+		remove_action( 'plugins_loaded', [ $this, 'boot' ], 20 );
+
+        if ( $this->booted || ! $this->is_wpml_available() ) {
+            return;
+        }
+
+        $this->booted = true;
+        $this->load_textdomain();
+        Helper\Serve::register_services( $this->get_controllers() );
+    }
+
+    /**
+	 * Determine whether a WPML provider is available for this request.
+	 *
+	 * @return bool
+	 */
+    private function is_wpml_available() {
+        $available = defined( 'ICL_SITEPRESS_VERSION' )
+            || class_exists( 'SitePress', false )
+            || has_filter( 'wpml_current_language' );
+
+        return (bool) apply_filters( 'directorist_wpml_integration_should_boot', $available );
     }
 
     /**
