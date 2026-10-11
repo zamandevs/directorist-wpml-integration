@@ -25,3 +25,12 @@ if ( ! function_exists( 'Directorist_WPML_Integration' ) ) {
 }
 
 add_action( 'directorist_loaded', 'Directorist_WPML_Integration' );
+
+add_filter(
+    'directorist_localized_data_aware_extensions',
+    static function ( $extensions ) {
+        $extensions[] = 'directorist-wpml-integration';
+
+        return array_values( array_unique( $extensions ) );
+    }
+);
